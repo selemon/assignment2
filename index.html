@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <script type="text/javascript" src="http://d3js.org/d3.v2.js"></script>
+    <script type="text/javascript" src="ganntModfied.js"></script>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <title>Victoria Viewer</title>
+</head>
+<body>
+<div id="welcome" align="center">
+    <span style='position:relative; bottom:0px; font-size: 70px;'>Victoria Viewers Scheduler</span>
+    <div id="flyin">
+
+        <span id="flyinSpan" style='position:relative; bottom:0px; font-size: 70px;'>Home</span>
+    </div>
+    <div id="flyinR">
+
+        <span id="flyinRSpan" style='position:relative; bottom:0px; font-size: 70px;'>School</span>
+
+    </div>
+</div>
+
+<br>
+<div id="school">
+    <button id="back" style="float: right">BACK</button>
+<form id="form" style="color: black">
+    start time-hour: <input id="sthour" type="number">
+    minutes: <input id="stminutes" type="number"/>
+    <br>
+    end time-hour: <input id="ethour" type="number">
+    minutes: <input id="etminutes" type="number"/>
+    <br>
+    name: <input id="name" type="text"/>
+    location: <input id="location" type="text">
+
+</form>
+<button id="add" style="background-color: #669900; color: beige">Add New Event</button>
+<br>
+<button id="modify" style="float: left;color: beige; background-color: #0090ff">Modify</button>
+<p  align="center" style="font-size: 40px; color: blue; float: inherit" ></p>
+
+</div>
+
+
+<script>
+
+    //hding the form
+    document.getElementById("form").style.display = "none";
+    //setting the time to be displayed
+    d3.select("body").select("p").text(function(){
+        return "Time: "+new Date().getHours()+":"+new Date().getMinutes();
+    });
+    var gantt;
+    var items = [];
+
+    var school = [];
+    var schoolData = new Array();
+
+    //data for the school enviornment
+    school = [
+
+        {"startDate":new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDay(),3,3,4,000),"endDate":new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDay(),6,0,4,000),"taskName":"STUDY","status":"RUNNING", "location":"HOME"},
+        {"startDate":new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDay(),11,0,4,000),"endDate":new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDay(),12,50,4,000),"taskName":"NWEN304 Lecture","status":"SUCCEEDED","location":"VIC"},
+        {"startDate":new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDay(),16,10,4,000),"endDate":new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDay(),17,0,4,000),"taskName":"SWEN303 Lecture","status":"RUNNING", "location":"VIC"},
+        {"startDate":new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDay(),7,3,4,000),"endDate":new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDay(),8,0,4,000),"taskName":"STUDY","status":"SUCCEEDED", "location":"HOME"},
+        {"startDate":new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDay(),10,0,4,000),"endDate":new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDay(),12,0,4,000),"taskName":"NWEN304 Lab","status":"RUNNING", "location":"VIC"}
+
+
+
+    ];
+
+
+
+    school.forEach(function(d, i){
+        var obj = new Object();
+        obj.startDate = new Date(d.startDate);
+        obj.endDate = new Date(d.endDate);
+        obj.taskName = d.taskName;
+        obj.status = checkStatus(d);
+        obj.location = d.location;
+        schoolData[i] = obj;
+    });
+
+
+
+    //data for the home enviornment
+    home = [
+
+        {"startDate":new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDay(),6,3,4,000),"endDate":new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDay(),7,0,4,000),"taskName":"MAKE DINNER","status":"RUNNING", "location":"HOME"},
+        {"startDate":new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDay(),12,0,4,000),"endDate":new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDay(),14,50,4,000),"taskName":"GROCERY SHOPPING","status":"SUCCEEDED","location":"PACK n SAVE"},
+        {"startDate":new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDay(),10,10,4,000),"endDate":new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDay(),12,0,4,000),"taskName":"HOUSE CLEANING","status":"RUNNING", "location":"home"},
+        {"startDate":new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDay(),22,3,4,000),"endDate":new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDay(),23,0,4,000),"taskName":"FREE TIME","status":"SUCCEEDED", "location":"GYM"},
+        {"startDate":new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDay(),3,30,4,000),"endDate":new Date(new Date().getFullYear(),new Date().getMonth(),new Date().getDay(),6,0,4,000),"taskName":"PICK UP KIDS","status":"RUNNING", "location":"SCHOOL"}
+
+
+
+    ];
+
+    var taskNamesHome = [ "MAKE DINNER", "GROCERY SHOPPING", "HOUSE CLEANING", "FREE TIME", "PICK UP KIDS"];
+
+
+    var homeData = new Array();
+
+    home.forEach(function(d, i){
+        var obj = new Object();
+        obj.startDate = new Date(d.startDate);
+        obj.endDate = new Date(d.endDate);
+        obj.taskName = d.taskName;
+        obj.status = checkStatus(d);
+        obj.location = d.location;
+        homeData[i] = obj;
+    });
+
+    //function to check the status by comparing it to the current date and time
+    function checkStatus(d){
+        var date = new Date();
+        if(d.endDate.getHours()>=date.getHours() && d.startDate.getHours()<=date.getHours()){
+            if(d.endDate.getHours()===date.getHours()&& d.endDate.getMinutes()<date.getMinutes()){
+                return "SUCCEEDED";
+            }
+            if(d.startDate.getHours()===date.getHours()&& d.startDate.getMinutes()>date.getMinutes()){
+                return "WAITING";
+            }
+            return "RUNNING";
+        }
+        else if(d.endDate.getHours()<date.getHours()){
+            return "SUCCEEDED";
+        }
+        else if(d.startDate.getHours()>date.getHours()){
+            return "WAITING";
+        }
+    }
+
+
+    var taskStatus = {
+        "SUCCEEDED" : "bar-succeeded",
+        "FAILED" : "bar-failed",
+        "RUNNING" : "bar-running",
+        "WAITING" : "bar-waiting"
+    };
+
+    var taskNamesSchool = [ "SWEN303 Lecture", "NWEN304 Lecture", "NWEN304 Lab", "STUDY"];
+
+
+
+    //setup the page
+    //sorts the data. gets the max n min then creates the gantt object
+    schoolData.sort(function(a, b) {
+        return a.endDate - b.endDate;
+    });
+    var maxDate = schoolData[schoolData.length - 1].endDate;
+    schoolData.sort(function(a, b) {
+        return a.startDate - b.startDate;
+    });
+    var minDate = schoolData[0].startDate;
+
+    var format = "%H:%M";
+
+    gantt = d3.gantt().taskTypes(taskNamesSchool).taskStatus(taskStatus).tickFormat(format);
+    gantt(schoolData);
+
+
+
+
+
+
+    var pressed = false;
+    var typeSelected = "school";//this is to load the 2 different kinds of enviornment. home and school
+
+    //button response for adding events
+    var add = d3.select("body").select("#school").select("#add")
+    add.on("click", function(){
+        if(!pressed){
+            add.text("done");
+            pressed = true;
+            document.getElementById("form").style.display = "initial";
+
+        }
+        else if(pressed){
+            add.text("Add New Event");
+            pressed = false;
+            document.getElementById("form").style.display = "none";
+            var sh = document.getElementById("sthour").value;
+            var sm = document.getElementById("stminutes").value;
+            var eh = document.getElementById("ethour").value;
+            var em = document.getElementById("etminutes").value;
+            var n = document.getElementById("name").value;
+            var l = document.getElementById("location").value;
+
+            if(sh!=="" && eh!=="" && n!=="" && l!==""){
+                var obj = new Object();
+                obj.startDate = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDay(),sh, sm,0, 000);
+                obj.endDate = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDay(), eh, em,0,000);
+                obj.taskName = n;
+                obj.location = l;
+
+                obj.status = checkStatus(obj);
+
+                if(typeSelected==="school"){
+                    taskNamesSchool.push(n);
+                    schoolData.push(obj);
+                    gantt.redraw(schoolData);
+                }
+                else if(typeSelected==="home"){
+                    taskNamesHome.push(n);
+                    homeData.push(obj);
+                    gantt.redraw(homeData);
+                }
+
+
+            }
+            else{
+                alert("Please make sure you fill out the boxes");
+            }
+
+
+        }
+
+    });
+
+
+
+    var svg = d3.select("body").select("#school").select("svg");
+
+
+    var newP = false;
+
+    //Creating a function to handle the drag event
+    function dragmove(d) {
+
+        if(newP){
+            d3.select(this)
+                    .attr("transform", "translate(" + d3.event.x + "," + d3.event.y + ")");
+        }
+
+    }
+    function dragstarted(d) {
+        d3.event.sourceEvent.stopPropagation();
+        d3.select(this).classed("dragging", true);
+    }
+    function dragended(d) {
+        d3.select(this).classed("dragging", false);
+    }
+
+
+
+
+    //Create drag behavior using the above function as handler
+    var drag = d3.behavior.drag()
+            .on("dragstart", dragstarted)
+            .on("drag", dragmove)
+            .on("dragend", dragended);
+
+
+    //this is the d3 animation. allows draging deleting and viewing information
+    var rect = svg.selectAll("rect");
+    rect.on("mouseover", function (d) {
+
+
+            rect.transition()
+                    .duration(0)
+                    .attr('opacity', 0.53);
+            d3.select(this).transition()
+                    .duration(500)
+                    .attr('opacity', 1);
+
+            tspan1.text(function(){
+                return "Start - "+d.startDate.getHours()+":"+ d.startDate.getMinutes();
+
+            });
+            tspan2.text(function(){
+                return "End - "+d.endDate.getHours()+":"+ d.endDate.getMinutes();
+            });
+            tspan3.text(function(){
+                return "Location - "+d.location;
+            });
+            tspan4.text(function(){
+                return "Status - "+d.status;
+            });
+
+
+
+    }).on("mouseout", function(d){
+
+            rect.transition()
+                    .duration(0)
+                    .attr('opacity', 1);
+        d3.select("body").select("#school").select("p").text(function(){
+            return "Time: "+new Date().getHours()+":"+new Date().getMinutes();
+        });
+
+    }).on("dblclick", function (d, i) {
+        if(typeSelected==="school"){
+            schoolData.splice(schoolData.indexOf(d), 1);
+            gantt.redraw(schoolData);
+        }
+        else if(typeSelected==="home"){
+            homeData.splice(homeData.indexOf(d), 1);
+            gantt.redraw(homeData);
+        }
+
+    }).call(drag);
+
+
+    //creating a text to output the information when a mouse is on a rect
+    var text = d3.select("body").select("#school").append("svg").append("text")
+            .attr("id", "txt")
+            .attr("x", 0)
+            .attr("y", 20)
+            .attr("font-size", "20px")
+            .attr("fill", "white")
+            .attr("font-weight", "bold")
+            .text("Information");
+    var tspan1 = text.append('tspan').attr("x", 0).attr("y", 40).attr("id", "t1");
+    var tspan2 = text.append('tspan').attr("x", 0).attr("y", 70).attr("id", "t2");
+    var tspan3 = text.append('tspan').attr("x", 0).attr("y", 100).attr("id", "t3");
+    var tspan4 = text.append('tspan').attr("x", 0).attr("y", 130).attr("id", "t4");
+
+
+    //this button is used to enable/dosable draging the scheduals/rects
+    var button = d3.select("body").select("#school").select("#modify");
+    button.on("click", function () {
+        if(newP){
+            button.text("Modify");
+            newP = false;
+        }
+        else if(!newP){
+            button.text("Done");
+            newP = true;
+        }
+    });
+
+
+
+
+
+
+
+
+
+
+
+
+
+    //this is the jquery controls the animation on the welcome page
+ $(document).ready(function(){
+        $('#school').hide();
+
+
+
+        // Calculate current broser width.
+        var currWidth = $(window).width();
+        var currHeight = $(window).height();
+        var startPos = -100;
+        var endPos = (currWidth / 2) + (startPos / 2);
+        var endP = (currHeight/2) + (startPos/2);
+
+        $('#flyin').animate({left: endPos+100, top:endP-80}, 1000);
+        $('#flyinR').animate({right: endPos+100, top:endP-80}, 1000);
+
+        $('#flyin').on('mouseover',function(){
+            $('#flyin').animate({width:"350", height:"350"});
+            $( "#flyinR" ).fadeTo( "fast", 0.53 );
+
+        });
+        $('#flyin').on('mouseout', function(){
+            $('#flyin').animate({width:"300", height:"300"});
+            $( '#flyinR' ).fadeTo( "fast", 1.00 );
+        });
+
+
+        $('#flyinR').on('mouseover',function(){
+            $('#flyinR').animate({width:"350", height:"350"});
+            $( '#flyin').fadeTo( "fast", 0.53 );
+        });
+        $('#flyinR').on('mouseout', function(){
+            $('#flyinR').animate({width:"300", height:"300"});
+            $( '#flyin' ).fadeTo( "fast", 1.00 );
+        });
+
+
+        $('#flyinR').click(function(){
+            typeSelected = "school";
+            $('#flyin').animate({width: "10%", height: "10%", opacity: 0}, 1000);
+            $('#flyinR').animate({width: "50%", height: "90%", opacity: 0}, 1000);
+            $('#welcome').animate({width: "100%", height: "90%", opacity: 0.25}, 1000);
+            $('#welcome').hide("slow");
+            $('#school').slideDown("fast");
+            schoolData.forEach(function(d,i){
+                schoolData[i].status = checkStatus(d);
+            });
+            gantt.taskTypes(taskNamesSchool);
+            gantt.redraw(schoolData);
+        });
+
+
+        $('#flyin').click(function(){
+            typeSelected = "home";
+            $('#flyinR').animate({width: "10%", height: "10%", opacity: 0}, 1000);
+            $('#flyin').animate({width: "50%", height: "90%", opacity: 0}, 1000);
+            $('#welcome').animate({width: "100%", height: "90%", opacity: 0.25}, 1000);
+            $('#welcome').hide("slow");
+            $('#school').slideDown("fast");
+            homeData.forEach(function(d,i){
+                homeData[i].status = checkStatus(d);
+            });
+            gantt.taskTypes(taskNamesHome);
+            gantt.redraw(homeData);
+        });
+
+        $('#back').click(function(){
+            $('#school').slideUp();
+            $('#welcome').slideDown();
+            $('#welcome').animate({width: "100%", height: "100%", opacity: 1}, 1000);
+            $('#flyinR').animate({width: "300px", height: "300px", opacity: 1}, 1000);
+            $('#flyin').animate({width: "300px", height: "300px", opacity: 1}, 1000);
+        });
+
+
+
+
+
+
+
+
+
+
+    });
+
+
+
+
+</script>
+
+
+
+</body>
+</html>

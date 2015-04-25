@@ -1,0 +1,28 @@
+[
+  {"startDate":9,
+    "endDate":10,
+    "taskName":"SWEN303 Lecture",
+    "status":"RUNNING",
+    "location":"VUW"},
+  {"startDate":12,
+    "endDate":2,
+    "taskName":"STUDY",
+    "status":"SUCCEEDED",
+    "location":"HOME"},
+  {"startDate":11,
+    "endDate":12,
+    "taskName":"NWEN304 Lecture",
+    "status":"RUNNING",
+    "location":"VUW"},
+  {"startDate":2,
+    "endDate":4,
+    "taskName":"STUDY",
+    "status":"SUCCEEDED",
+    "location":"HOME"},
+  {"startDate":2,
+    "endDate":6,
+    "taskName":"NWEN304 Lab",
+    "status":"RUNNING",
+    "location":"VUW"}
+
+]
